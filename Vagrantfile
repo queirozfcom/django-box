@@ -10,15 +10,15 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
   # please see the online documentation at vagrantup.com.
 
   # Every Vagrant virtual environment requires a box to build off of.
-  config.vm.box = "trusty64"
+  config.vm.box = "trusty32"
 
-  config.vm.box_url = "https://cloud-images.ubuntu.com/vagrant/trusty/current/trusty-server-cloudimg-amd64-vagrant-disk1.box" 
+  config.vm.box_url = "https://cloud-images.ubuntu.com/vagrant/trusty/current/trusty-server-cloudimg-i386-vagrant-disk1.box"
   
 
-  # Disable automatic box update checking. If you disable this, then
-  # boxes will only be checked for updates when the user runs
-  # `vagrant box outdated`. This is not recommended.
-  # config.vm.box_check_update = false
+  # this is needed so that puppet doesn't complain abou the lack of a fqdn in our box
+  config.vm.hostname = "vagrant.example.com"
+
+  config.vm.box_check_update = false
 
   # Create a forwarded port mapping which allows access to a specific port
   # within the machine from a port on the host machine. In the example below,
@@ -53,8 +53,6 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
      # vb.gui = true
   
      # Use VBoxManage to customize the VM. For example to change memory:
-     vb.memory = 1024
-     vb.cpus = 1  
      vb.name = 'django_vm'
   end
 
