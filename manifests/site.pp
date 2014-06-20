@@ -7,10 +7,8 @@ Exec {
 
 # a command to run system updates
 exec { 'sys_update':
-	command => "apt-get update --fix-missing"
+	command => "apt-get update --fix-missing",
 }
-
-
 
 class git {
 	package{'git-core':
@@ -22,75 +20,84 @@ class git {
 class python {
 	package{'python-pip':
 		ensure =>'installed',
-		notify => Exec['sys_update'],
+		require => Exec['sys_update'],
 	}->
-	package{'virtualenv':
-		ensure => 'installed', 
-		provider => 'pip',
+	package{'python-virtualenv':
+		ensure => 'installed',
+		require => Exec['sys_update'],
 	}
 }
 
 class virtualenvs{
-	include python
 
-	file{"project directory":
+	file{"project directory with full permissions":
+		require => Class['python'],
 		path => "/home/${username}/test-project",
+		owner => "${username}",
 		ensure => 'directory',
-	}->
-	exec{"virtualenv test-project":
-		# this will only run if there isn't already a virtualenv for this
+		mode => '755',
+		recurse => true,
+	} ->
+	exec{"create virtualenv":
+		command => "virtualenv test-project",
 		cwd => "/home/${username}",
+		# this will only run if there isn't already a virtualenv for this
 		creates => "/home/${username}/test-project/bin",
+		user => "${username}",
+	} ->
+	exec {"re-set permissions":
+		command => "chmod 755 /home/${username}/test-project/ -R"
+	} ->
+	exec{"activate virtualenv":
+		# activate the virtualenv
+	    command =>". /home/${username}/test-project/bin/activate",
+	    # needed for shell builtins like '.' (source is bash-only)
+	    provider => 'shell',
+	    user => "${username}",
 	}
 
-	# activate the virtualenv
-	exec{"source activate":
-	    command =>". /home/${username}/test-project/bin/activate",
-	    # needed for shel builtins like '.' (source is bash-only)
-	    provider => 'shell',
-		require => File['project directory'],
+}
+
+class mysqlpython{
+	
+	package{'python-dev':
+		require => Exec['sys_update'],
+		ensure => 'installed',
+	} ->
+	package{'mysql-server':
+		ensure => 'installed',
+	} ->
+	package{'libmysqlclient-dev':
+		ensure =>'installed',
+	} ->
+	exec{'mysql-python':
+		require => Class['virtualenvs'],
+		# this pip executable should be the virtualenv one
+		command =>"/home/${username}/test-project/bin/pip install mysql-python",
+		user =>"${username}",
 	}
 
 }
 
 class django {
-	include python
-	include virtualenvs
-	include mysql_python
-
-	package{'Django':
-		ensure=>'installed',
-		provider =>'pip',
+	exec{'Django':
+		# this pip executable should be the virtualenv one
+		command => "/home/${username}/test-project/bin/pip install Django",
+		user =>"${username}",
+		require => Class['mysqlpython','virtualenvs'],
 	}
 
 }
 
-class mysql_python{
-	include virtualenvs
-
-	package{'python-dev':
-		ensure => 'installed',
-	}->
-	package{'mysql-server':
-		ensure => 'installed',
-	}->
-	package{'libmysqlclient-dev':
-		ensure =>'installed',
-	}->
-	package{'MySQL-python':
-		ensure => 'installed',
-		provider => 'pip',
-	}	
-
-}
 
 class gui{
 	# todo
 }
 
-
+include virtualenvs
+include django
+include mysqlpython
 include python
 include git
-include django
 
 
