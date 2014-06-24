@@ -26,7 +26,7 @@ class python {
 	package{'python-pip':
 		ensure =>'installed',
 		require => Exec['sys_update'],
-	}->
+	} ->
 	package{'python-virtualenv':
 		ensure => 'installed',
 		require => Exec['sys_update'],
@@ -77,16 +77,12 @@ class mysqlpython{
 		command =>"/home/${username}/venv/bin/pip install mysql-python",
 		user =>"${username}",
 	}
-
 }
 
 class postgrespython{
-	
 	package{'postgresql-server-dev-9.3':
 		ensure => 'installed',
 	}
-
-
 }
 
 class django {
@@ -106,18 +102,88 @@ class django {
 		user => "${username}",
 		cwd => "/home/${username}",
 	}
-
 }
 
+class sublime{
+	file{"/home/${username}/Downloads":
+		ensure => 'directory',
+		owner => "${username}",
+		recurse => true,
+	} ->
+	exec{'download':
+		command => "wget http://c758482.r82.cf2.rackcdn.com/Sublime%20Text%202.0.2.tar.bz2",
+		cwd => "/home/${username}/Downloads",
+		# only if it hasn't already been done.
+		creates => "/home/${username}/Downloads/Sublime Text 2.0.2.tar.bz2",
+	} ->
+	exec{'extract':
+		command => "tar -jxvf Sublime Text 2.0.2.tar.bz2",
+		cwd => "/home/${username}/Downloads",
+		creates =>"/home/${username}/Downloads/Sublime Text 2",
+	} ->
+	file{"/home/${username}/Desktop":
+		ensure => 'directory',
+		owner => "${username}",
+		recurse => true,
+	} ->
+	exec {'create desktop link':
+		command => "ln -s /home/${username}/Desktop/sublime_text /home/${username}/Downloads/Sublime Text 2/sublime_text",
+		creates => "/home/${username}/Desktop/sublime_text",
+	}	
+}
+
+class chrome{
+	package{'libxss1':
+		ensure => 'installed'
+	} ->
+	file{"/home/${username}/Downloads":
+		ensure => 'directory',
+		owner => "${username}",
+		recurse => true,
+	} ->
+	exec{'download chrome deb':
+		command => 'wget https://dl.google.com/linux/direct/google-chrome-stable_current_i386.deb',
+		cwd => "/home/${username}/Downloads",
+		creates => "/home/${username}/Downloads/google-chrome-stable_current_i386.deb",
+	} ->
+	exec{'install chrome':
+		command => 'dpkg -i google-chrome-stable_current_i386.deb',
+	} -> 
+	exec{'add shortcuts to desktop':
+		command => "ln -s /usr/bin/google-chrome /home/${username}/Desktop",
+	} ->
+	exec{'set permissions':
+		command => "chmod + /home/${username}/Desktop/*.desktop",
+	}
+}
 
 class gui{
-	# todo
+	
+	package{'xubuntu-desktop':
+		ensure => 'installed',
+		install_options => ' --no-install-recommends',
+		# to make sure this gets run last
+		require => Class['django'],
+	} ->
+	package{'xubuntu-icon-theme':
+		ensure => 'installed',
+	} ->
+	exec{'dpkg-reconfigure':
+		command => 'dpkg-reconfigure lightdm',
+	} ->
+	exec{'reboot':
+		command => 'reboot',
+	}
 }
+
 
 include virtualenvs
 include django
 include postgrespython
 include python
 include git
+include gui
+include sublime
+include chrome
 
 
