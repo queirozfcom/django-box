@@ -1,5 +1,8 @@
 $username='vagrant'
 $project = 'django-blog'
+
+$inc_file_path = '/vagrant/manifests/files'
+
 # tell puppet what to prepend to commands
 Exec { 
 	path => [ "/bin/", "/sbin/" , "/usr/bin/", "/usr/sbin/","/usr/local/bin" ]
@@ -104,42 +107,48 @@ class django {
 	}
 }
 
-class sublime{
+class home{
 	file{"/home/${username}/Downloads":
 		ensure => 'directory',
 		owner => "${username}",
 		recurse => true,
 	} ->
-	exec{'download':
-		command => "wget http://c758482.r82.cf2.rackcdn.com/Sublime%20Text%202.0.2.tar.bz2",
-		cwd => "/home/${username}/Downloads",
-		# only if it hasn't already been done.
-		creates => "/home/${username}/Downloads/Sublime Text 2.0.2.tar.bz2",
-	} ->
-	exec{'extract':
-		command => "tar -jxvf Sublime Text 2.0.2.tar.bz2",
-		cwd => "/home/${username}/Downloads",
-		creates =>"/home/${username}/Downloads/Sublime Text 2",
+	file{"/home/${username}/Documents":
+		ensure => 'directory',
+		owner => "${username}",
+		recurse => true,
 	} ->
 	file{"/home/${username}/Desktop":
 		ensure => 'directory',
 		owner => "${username}",
 		recurse => true,
+	}
+}
+
+class sublime{
+	
+	exec{'download':
+		require => Class['home'],
+		command => "wget http://c758482.r82.cf2.rackcdn.com/Sublime%20Text%202.0.2.tar.bz2",
+		cwd => "/home/${username}/Downloads",
+		# only if it hasn't already been done.
+		creates => "/home/${username}/Downloads/Sublime\\ Text\\ 2.0.2.tar.bz2",
+	} ->
+	exec{'extract':
+		command => "tar -jxvf Sublime\\ Text\\ 2.0.2.tar.bz2",
+		cwd => "/home/${username}/Downloads",
+		creates =>"/home/${username}/Downloads/Sublime\\ Text\\ 2",
 	} ->
 	exec {'create desktop link':
-		command => "ln -s /home/${username}/Desktop/sublime_text /home/${username}/Downloads/Sublime Text 2/sublime_text",
+		command => "ln -s /home/${username}/Downloads/Sublime\\ Text\\ 2/sublime_text /home/${username}/Desktop/sublime_text",
 		creates => "/home/${username}/Desktop/sublime_text",
 	}	
 }
 
 class chrome{
 	package{'libxss1':
+		require => Class['home'],
 		ensure => 'installed'
-	} ->
-	file{"/home/${username}/Downloads":
-		ensure => 'directory',
-		owner => "${username}",
-		recurse => true,
 	} ->
 	exec{'download chrome deb':
 		command => 'wget https://dl.google.com/linux/direct/google-chrome-stable_current_i386.deb',
@@ -148,17 +157,22 @@ class chrome{
 	} ->
 	exec{'install chrome':
 		command => 'dpkg -i google-chrome-stable_current_i386.deb',
+		cwd => "/home/${username}/Downloads",
+		creates => "/usr/bin/google-chrome",
 	} -> 
 	exec{'add shortcuts to desktop':
 		command => "ln -s /usr/bin/google-chrome /home/${username}/Desktop",
 	} ->
 	exec{'set permissions':
-		command => "chmod + /home/${username}/Desktop/*.desktop",
+		command =>"chmod +x /home/${username}/Desktop/*.desktop",
 	}
 }
 
 class gui{
-	
+	require home
+	exec{'fix-broken':
+		command => 'apt-get -f install --assume-yes',
+	} ->
 	package{'xubuntu-desktop':
 		ensure => 'installed',
 		install_options => ' --no-install-recommends',
@@ -185,5 +199,6 @@ include git
 include gui
 include sublime
 include chrome
+include home
 
 
