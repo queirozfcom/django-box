@@ -161,7 +161,8 @@ class chrome{
 		creates => "/usr/bin/google-chrome",
 	} -> 
 	exec{'add shortcuts to desktop':
-		command => "ln -s /usr/bin/google-chrome /home/${username}/Desktop",
+		command => "ln -s /usr/bin/google-chrome /home/${username}/Desktop/google-chrome",
+		creates => "/home/${username}/Desktop/google-chrome",
 	} ->
 	exec{'set permissions':
 		command =>"chmod +x /home/${username}/Desktop/*.desktop",
@@ -184,6 +185,16 @@ class gui{
 	} ->
 	exec{'dpkg-reconfigure':
 		command => 'dpkg-reconfigure lightdm',
+	} ->
+	file_line {'screen lock is false':
+		ensure => 'present',
+		path => '/etc/default/acpi-support',
+		line => 'LOCK_SCREEN=false',
+	} ->
+	file_line{'screen lock is not true':
+		ensure => 'absent',
+		path => '/etc/default/acpi-support',
+		line => 'LOCK_SCREEN=true',		
 	} ->
 	exec{'reboot':
 		command => 'reboot',

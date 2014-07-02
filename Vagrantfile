@@ -57,7 +57,9 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
      # Use VBoxManage to customize the VM. For example to change memory:
      vb.name = 'django_vm'
   end
-
+	
+  config.vm.provision :shell, :inline => "mkdir -p /etc/puppet/modules && ( (puppet module list | grep puppetlabs-stdlib) || puppet module install puppetlabs/stdlib)"
+	
   # Enable provisioning with Puppet stand alone.  Puppet manifests
   # are contained in a directory path relative to this Vagrantfile.
   # You will need to create the manifests directory and a manifest in
